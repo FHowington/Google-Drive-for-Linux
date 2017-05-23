@@ -1,7 +1,8 @@
 #!/usr/bin/env python2
-import FileManagement
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
+import NotifyMonitor
+
 import os
 
 abspath = os.path.abspath(__file__)
@@ -43,7 +44,11 @@ if not baseLocated:
 baseID = folder_id
 
 # Walking through all subdirectories in specified folder
-FileManagement.walkDir(baseID, home+baseLocation, baseFolder, drive)
+#FileManagement.walkDir(baseID, home+baseLocation, baseFolder, drive)
+print("Started Monitor")
+NotifyMonitor.monitor(baseID, drive)
+
+
 
 
 
