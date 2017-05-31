@@ -4,7 +4,6 @@ from pydrive.drive import GoogleDrive
 import NotifyMonitor
 
 import os
-
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
@@ -12,7 +11,7 @@ os.chdir(dname)
 gauth = GoogleAuth()
 gauth.LocalWebserverAuth()
 drive = GoogleDrive(gauth)
-baseLocation = '/OneDrive'
+
 baseFolder = 'OneDrive'
 baseLocated = False
 
@@ -23,8 +22,7 @@ folder_metadata = {
 }
 folder = drive.CreateFile(folder_metadata)
 
-home = os.path.expanduser('~')
-
+os.chdir('/')
 # If the base file is not located, the base file is created. Regardless,
 # the baseID is assigned to the base folder
 for file_list in drive.ListFile({'q': 'trashed=false', 'maxResults': 1000}):
