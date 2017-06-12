@@ -1,125 +1,86 @@
 import os
-import re
 import datetime
+import Locater
+from apiclient import http
+import magic
 
 files = []
 dirs = []
 
 
-def update(baseID, fullPath, filename, drive):
-    folder_id = baseID
+def update(base_id, full_path, filename, drive):
+    print("Trying to update")
+    folder_id = Locater.find(base_id, full_path, drive)
 
-    # Trying to translate the dirpath into the path of Google Drive...
-    pathDelimited = re.split('/', fullPath)
-    # Determining where is the list of subfolders the basefolder is located, only happens once
+    file_located = False
+    page_token = None
+    response = drive.service.files().list(q="mimeType!='application/vnd.google-apps.folder'"
+                                            and "'%s' in parents" % folder_id
+                                            and "name='%s'" % filename,
+                                          spaces='drive',
+                                          fields='nextPageToken, files(id, name, parents, modifiedTime)',
+                                          pageToken=page_token).execute()
 
-    for i in range(len(pathDelimited)):
-        if pathDelimited[i] == "OneDrive":
-            pathLocation = i
-            break
+    for file in response.get('files', []):
+        if file.get('name') == filename and folder_id in file.get('parents'):
+            print("File located")
 
-        # If there are additional folders in the path, they are iterated through
-        # Because the current folder_ID is the base folder, we start by searching folder that have this as parent
-    for i in range(pathLocation + 1, len(pathDelimited)):
-        baseLocated = False
-        print("Searching for folder named", pathDelimited[i], "with parent folder", folder_id)
+            # Getting time of modification of all files in path
+            modified_date = os.path.getmtime(full_path + '/' + filename)
 
-        for file_list in drive.ListFile({'q': "'" + folder_id + "'" + " in parents", 'maxResults': 1000}):
-            for folders in file_list:
-                print("Found folder named", folders['title'])
-                if folders['title'] == pathDelimited[i]:
-                    # print('Found base id, it is:', folders['id'])
-                    baseLocated = True
-                    folder_id = folders['id']
-                    break
+            # Converting Google's weird datetime zulu syntax into UTC syntax
+            datetime_existing = datetime.datetime.strptime(file.get('modifiedTime').replace("T", " ")[:19],
+                                                           '%Y-%m-%d %H:%M:%S')
 
-            if not baseLocated:
-                print("Did not find folder, creating it")
-                folder_metadata = {
-                    'title': pathDelimited[i],
-                    'mimeType': 'application/vnd.google-apps.folder',
-                    'parents': [{"kind": "drive#fileLink", "id": folder_id}]
-                }
-                print('Parent should be' + folder_id)
-                folder = drive.CreateFile(folder_metadata)
-                folder.Upload()
-                folder_title = folder['title']
-                folder_id = folder['id']
-                print('title: %s, id: %s' % (folder_title, folder_id))
+            if datetime.datetime.utcfromtimestamp(modified_date) > datetime_existing:
+                # fileToRemove = drive.CreateFile({'id': filesContained['id']})
+                # fileToRemove.Delete()
+                print("More recent version of file found. File removed.")
+                break
 
+            else:
+                print("Found file in folder already id, it is: ", file.get('id'))
+                file_located = True
+                break
 
-    fileLocated = False
-    for file_list in drive.ListFile({'q': "'" + folder_id + "'" + " in parents", 'maxResults': 1000}):
-        for filesContained in file_list:
-            if filesContained['title'] == filename:
-                # Getting time of modification of all files in path
-                modifiedDate = os.path.getmtime(fullPath + '/' + filename)
+    if not file_located:
+        file_metadata = {
+            'parents': [folder_id],
+            'name': filename,
+        }
 
-                # Converting googles weird datetime zulu syntax into UTC syntax
-                datetime_Existing = datetime.datetime.strptime(filesContained['modifiedDate'].replace("T", " ")[:19],
-                                                               '%Y-%m-%d %H:%M:%S')
+        mime_type = magic.from_file(full_path + "/" + filename, mime=True)
+        print(mime_type)
 
-                if datetime.datetime.utcfromtimestamp(modifiedDate) > datetime_Existing:
-                    fileToRemove = drive.CreateFile({'id': filesContained['id']})
-                    fileToRemove.Delete()
-                    print("More recent version of file found. File removed.")
-                    break
+        media = http.MediaFileUpload(full_path + "/" + filename, mimetype=mime_type)
 
-                else:
-                    print("Found file in folder already id, it is: ", filesContained['id'])
-                    fileLocated = True
-                    break
+        drive.service.files().create(body=file_metadata,
+                                     media_body=media,
+                                     fields='id').execute()
 
-
-
-    if not fileLocated:
-        print(filename)
         print("Did not find file, creating it")
-        print([{"kind": "drive#fileLink", "id": folder_id}])
 
-        f = drive.CreateFile({"title": filename, "parents": [{"kind": "drive#fileLink", "id": folder_id}]})
-        f.SetContentFile(os.path.join(fullPath, filename))
-        f.Upload()
 
-def update_folder(baseID, fullPath, drive):
-    print("Updating folder")
+def update_folder(base_id, full_path, drive):
+    Locater.find(base_id, full_path, drive)
 
-    folder_id = baseID
 
-    # Trying to translate the dirpath into the path of Google Drive...
-    pathDelimited = re.split('/', fullPath)
-    # Determining where is the list of subfolders the basefolder is located, only happens once
+def rename_file(base_id, temp_name, filename, watch_path, drive):
+    print("Renaming folder")
+    folder_id = Locater.find(base_id, watch_path, drive)
 
-    for i in range(len(pathDelimited)):
-        if pathDelimited[i] == "OneDrive":
-            pathLocation = i
-            break
+    page_token = None
+    response = drive.service.files().list(q="'%s' in parents" % folder_id
+                                            and "name='%s'" % temp_name,
+                                          spaces='drive',
+                                          fields='nextPageToken, files(id, name, parents)',
+                                          pageToken=page_token).execute()
 
-            # If there are additional folders in the path, they are iterated through
-            # Because the current folder_ID is the base folder, we start by searching folder that have this as parent
-    for i in range(pathLocation + 1, len(pathDelimited)):
-        baseLocated = False
-        print("Searching for folder named", pathDelimited[i], "with parent folder", folder_id)
+    for file in response.get('files', []):
+        if file.get('name') == temp_name and folder_id in file.get('parents'):
+            print("Older folder found")
 
-        for file_list in drive.ListFile({'q': "'" + folder_id + "'" + " in parents", 'maxResults': 1000}):
-            for folders in file_list:
-                print("Found folder named", folders['title'])
-                if folders['title'] == pathDelimited[i]:
-                    # print('Found base id, it is:', folders['id'])
-                    baseLocated = True
-                    folder_id = folders['id']
-                    break
+            file_metadata = {'name': filename}
 
-            if not baseLocated:
-                print("Did not find folder, creating it")
-                folder_metadata = {
-                    'title': pathDelimited[i],
-                    'mimeType': 'application/vnd.google-apps.folder',
-                    'parents': [{"kind": "drive#fileLink", "id": folder_id}]
-                }
-                print('Parent should be' + folder_id)
-                folder = drive.CreateFile(folder_metadata)
-                folder.Upload()
-                folder_title = folder['title']
-                folder_id = folder['id']
-                print('title: %s, id: %s' % (folder_title, folder_id))
+            drive.service.files().update(fileId=file.get('id'), body=file_metadata,
+                                         fields='id').execute()
