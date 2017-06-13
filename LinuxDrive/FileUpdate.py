@@ -8,9 +8,9 @@ files = []
 dirs = []
 
 
-def update(base_id, full_path, filename, drive):
+def update(base_id, full_path, filename, drive, notify):
     print("Trying to update")
-    folder_id = Locater.find(base_id, full_path, drive)
+    folder_id = Locater.find(base_id, full_path, drive, notify)
 
     file_located = False
     page_token = None
@@ -61,13 +61,13 @@ def update(base_id, full_path, filename, drive):
         print("Did not find file, creating it")
 
 
-def update_folder(base_id, full_path, drive):
-    Locater.find(base_id, full_path, drive)
+def update_folder(base_id, full_path, drive, notify):
+    Locater.find(base_id, full_path, drive, notify)
 
 
-def rename_file(base_id, temp_name, filename, watch_path, drive):
+def rename_file(base_id, temp_name, filename, watch_path, drive, notify):
     print("Renaming folder")
-    folder_id = Locater.find(base_id, watch_path, drive)
+    folder_id = Locater.find(base_id, watch_path, drive, notify)
 
     page_token = None
     response = drive.service.files().list(q="'%s' in parents" % folder_id

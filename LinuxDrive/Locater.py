@@ -1,7 +1,7 @@
 import re
 
 
-def find(base_id, full_path, gDrive):
+def find(base_id, full_path, gDrive, notify):
     folder_id = base_id
 
     # Trying to translate the dirpath into the path of Google Drive...
@@ -45,6 +45,8 @@ def find(base_id, full_path, gDrive):
                 'name': pathDelimited[i],
                 'mimeType': 'application/vnd.google-apps.folder'
             }
+
+            notify.add_watch(bytes(full_path, encoding="utf-8"))
 
             print('Parent should be' + folder_id)
             folder = gDrive.service.files().create(body=folder_metadata,
