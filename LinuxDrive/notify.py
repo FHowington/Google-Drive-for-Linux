@@ -34,10 +34,6 @@ class NotifyMonitor:
             for event in i.event_gen():
                 if event is not None:
                     (header, type_names, watch_path, filename) = event
-                    print(filename)
-                    print(type_names)
-                    print(watch_path)
-                    print(header)
                     if "IN_CLOSE_WRITE" in type_names:
                         """ This indicates that the file was saved. Initial creation of a file may generate
                         this as well as an IN_CREATE, but the uploader should be able to prevent multiple copies 
@@ -66,8 +62,12 @@ class NotifyMonitor:
                                       encoding="utf-8"))
                             """Because pasting a folder does not raise iNotify events for the files within the folder
                             we need to manually query the folder for it's contents"""
+                            print("Recursively adding folder")
+                            FileUpdate.multi_add(base_id, watch_path.decode("utf-8") + "/" +
+                                                 filename.decode("utf-8"), drive, i)
 
                         else:
+                            print("Not a folder")
                             FileUpdate.update(base_id, watch_path.decode("utf-8"), filename.decode("utf-8"), drive, i)
 
                     elif "IN_MOVED_FROM" in type_names:

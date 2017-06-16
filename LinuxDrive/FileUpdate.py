@@ -1,4 +1,5 @@
 import os
+from os import walk
 import datetime
 import Locater
 from apiclient import http
@@ -50,7 +51,6 @@ def update(base_id, full_path, filename, drive, notify):
         }
 
         mime_type = magic.from_file(full_path + "/" + filename, mime=True)
-        print(mime_type)
 
         media = http.MediaFileUpload(full_path + "/" + filename, mimetype=mime_type)
 
@@ -84,3 +84,14 @@ def rename_file(base_id, temp_name, filename, watch_path, drive, notify):
 
             drive.service.files().update(fileId=file.get('id'), body=file_metadata,
                                          fields='id').execute()
+
+
+def multi_add(base_id, watch_path, drive, notify):
+    for (dir_path, dir_names, file_names) in walk(watch_path):
+        for file in file_names:
+            if os.path.isdir(dir_path + "/" + file):
+                notify.add_watch(bytes(dir_path + "/" + file, encoding="utf-8"))
+            else:
+                update(base_id, dir_path, file, drive, notify)
+
+

@@ -47,7 +47,6 @@ def find(base_id, full_path, drive, notify):
                 'mimeType': 'application/vnd.google-apps.folder'
             }
 
-            notify.add_watch(bytes(full_path, encoding="utf-8"))
 
             print('Parent should be' + folder_id)
             folder = drive.service.files().create(body=folder_metadata,
