@@ -1,7 +1,6 @@
 import re
 
-
-def find(base_id, full_path, drive, notify):
+def find(base_id, full_path, drive):
     folder_id = base_id
     path_location = 0
 
@@ -14,8 +13,10 @@ def find(base_id, full_path, drive, notify):
             path_location = i
             break
 
-    # If there are additional folders in the path, they are iterated through
-    # Because the current folder_ID is the base folder, we start by searching folder that have this as parent
+    """If there are additional folders in the path, they are iterated through
+    Because the current folder_ID is the base folder, we start by searching folder that have this as parent
+    """
+
     for i in range(path_location + 1, len(path_delimited)):
         folder_located = False
         print("Searching for folder named", path_delimited[i], "with parent folder", folder_id)

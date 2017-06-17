@@ -1,7 +1,8 @@
 import logging
 import os
 import inotify.adapters
-import FileUpdate
+
+from FileUpdate import Update
 from os import walk
 
 _DEFAULT_LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -9,25 +10,28 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class NotifyMonitor:
-    def __init__(self):
+    def __init__(self, base_folder, base_path, base_id, drive):
+        self.base_folder = base_folder
+        self.base_path = base_path
+        self.base_id = base_id
+        self.drive = drive
+        self.update = Update(base_id, drive)
         _LOGGER.setLevel(logging.DEBUG)
         ch = logging.StreamHandler()
         formatter = logging.Formatter(_DEFAULT_LOG_FORMAT)
         ch.setFormatter(formatter)
         _LOGGER.addHandler(ch)
 
-    def monitor(self, base_id, drive):
+    def monitor(self):
         temp_name = None
         temp_cookie = None
         temp_path = None
         """ Formerly used notify tree, however there seems to be issues regarding watching newly created folders.
         May revert to tree if I can figure out how to ensure addition of all subfolders and files in new folder
         """
-        # i = inotify.adapters.InotifyTree(bytes(base_path, encoding="utf-8"))
 
-        base_path = '/home/forbes/OneDrivePractice'
         i = inotify.adapters.Inotify()
-        for (dirpath, dirnames, filenames) in walk(base_path):
+        for (dirpath, dirnames, filenames) in walk(self.base_path):
             i.add_watch(bytes(dirpath, encoding="utf-8"))
 
         try:
@@ -42,8 +46,7 @@ class NotifyMonitor:
                         if os.path.getsize(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")) > 0:
                             if not os.path.isdir(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")):
                                 print("Something written to")
-                                FileUpdate.update(base_id, watch_path.decode("utf-8"), filename.decode("utf-8"), drive,
-                                                  i)
+                                self.update.update(watch_path.decode("utf-8"), filename.decode("utf-8"))
                         else:
                             print("File is 0 bytes, will not attempt upload")
 
@@ -55,20 +58,20 @@ class NotifyMonitor:
                         """
                         if os.path.isdir(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")):
                             print("New folder detected")
-                            FileUpdate.update_folder(base_id, watch_path.decode("utf-8") + "/" +
-                                                     filename.decode("utf-8"), drive, i)
+                            self.update.update_folder(watch_path.decode("utf-8") + "/" +
+                                                      filename.decode("utf-8"))
                             i.add_watch(
                                 bytes((watch_path.decode("utf-8") + "/" + filename.decode("utf-8")),
                                       encoding="utf-8"))
                             """Because pasting a folder does not raise iNotify events for the files within the folder
                             we need to manually query the folder for it's contents"""
                             print("Recursively adding folder")
-                            FileUpdate.multi_add(base_id, watch_path.decode("utf-8") + "/" +
-                                                 filename.decode("utf-8"), drive, i)
+                            self.update.multi_add(watch_path.decode("utf-8") + "/" +
+                                                  filename.decode("utf-8"), i)
 
                         else:
                             print("Not a folder")
-                            FileUpdate.update(base_id, watch_path.decode("utf-8"), filename.decode("utf-8"), drive, i)
+                            self.update.update(watch_path.decode("utf-8"), filename.decode("utf-8"))
 
                     elif "IN_MOVED_FROM" in type_names:
                         temp_cookie = header.cookie
@@ -87,8 +90,9 @@ class NotifyMonitor:
                                         encoding="utf-8"))
 
                                 print("This was a rename")
-                                FileUpdate.rename_file(base_id, temp_name.decode("utf-8"), filename.decode("utf-8"),
-                                                       watch_path.decode("utf-8"), drive, i)
+                                self.update.rename_file(temp_name.decode("utf-8"),
+                                                        filename.decode("utf-8"),
+                                                        watch_path.decode("utf-8"), i)
                             else:
                                 print("This was a move")
 
