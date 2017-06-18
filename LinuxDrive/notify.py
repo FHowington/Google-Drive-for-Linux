@@ -49,7 +49,7 @@ class NotifyMonitor:
                             if not os.path.isdir(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")):
                                 print("Something written to")
                                 print("File name " + filename.decode("utf-8"))
-                                self.update.update(watch_path.decode("utf-8"), filename.decode("utf-8"))
+                                self.update.update(watch_path.decode("utf-8"), [filename.decode("utf-8")])
                         else:
                             print("File is 0 bytes, will not attempt upload")
 
@@ -78,7 +78,7 @@ class NotifyMonitor:
 
                         else:
                             print("File Created")
-                            self.update.update(watch_path.decode("utf-8"), filename.decode("utf-8"))
+                            self.update.update(watch_path.decode("utf-8"), [filename.decode("utf-8")])
 
                     elif "IN_MOVED_FROM" in type_names:
                         temp_cookie = header.cookie

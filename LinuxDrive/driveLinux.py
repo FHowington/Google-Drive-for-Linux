@@ -65,7 +65,7 @@ def main():
         folder_id = folder.get('id')
 
     print("Started Monitor")
-    notify = NotifyMonitor(base_folder, base_path, folder_id, drive)
+    notify = NotifyMonitor(base_folder=base_folder, base_path=base_path, base_id=folder_id, drive=drive)
     notify.monitor()
 
 
