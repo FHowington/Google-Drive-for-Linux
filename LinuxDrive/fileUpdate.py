@@ -5,6 +5,7 @@ from apiclient import http
 import magic
 
 from locater import Locater
+
 files = []
 dirs = []
 
@@ -104,3 +105,23 @@ class Update:
             else:
                 Update.update(self, dir_path, file_names)
 
+    def move(self, temp_path, watch_path, filename):
+        self.folder_id = self.locater.find(temp_path, self.folder_id)
+        new_parent = self.locater.find(watch_path, self.folder_id)
+        print(new_parent)
+        page_token = None
+        response = self.drive.service.files().list(q="'%s' in parents" % self.folder_id
+                                                     and "name='%s'" % filename,
+                                                   spaces='drive',
+                                                   fields='nextPageToken, files(id, name, parents)',
+                                                   pageToken=page_token).execute()
+        for file in response.get('files', []):
+            if file.get('name') == filename and self.folder_id in file.get('parents'):
+                previous_parents = ",".join(file.get('parents'))
+                # Move the file to the new folder
+                self.drive.service.files().update(fileId=file.get('id'),
+                                                  addParents=new_parent,
+                                                  removeParents=previous_parents,
+                                                  fields='id, parents').execute()
+
+                print("Successfully moved remote file")
