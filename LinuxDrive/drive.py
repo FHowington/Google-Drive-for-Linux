@@ -8,8 +8,8 @@ from oauth2client.file import Storage
 
 try:
     import argparse
-
     flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
+
 except ImportError:
     flags = None
 
@@ -25,7 +25,8 @@ class Drive(object):
     def __init__(self):
         self.service = self.get_service()
 
-    def get_credentials(self):
+    @staticmethod
+    def get_credentials():
         """Gets valid user credentials from storage.
     
         If nothing has been stored, or if the stored credentials are invalid,
