@@ -16,10 +16,13 @@ class Update:
         self.base_id = base_id
         self.locater = Locater(base_id=base_id, drive=drive, base_path=base_path)
         self.folder_id = None
+        self.previous_path = None
 
     def update(self, full_path, file_names):
         print("Trying to update")
-        self.folder_id = self.locater.find(full_path=full_path, previous_folder=self.folder_id)
+        self.folder_id = self.locater.find(full_path=full_path, previous_folder=self.folder_id,
+                                           previous_path=self.previous_path)
+        self.previous_path = full_path
 
         file_located = False
         page_token = None
@@ -63,7 +66,6 @@ class Update:
                     }
 
                     mime_type = magic.from_file(full_path + "/" + filename, mime=True)
-
                     media = http.MediaFileUpload(full_path + "/" + filename, mimetype=mime_type)
 
                     self.drive.service.files().create(body=file_metadata,
@@ -75,13 +77,17 @@ class Update:
                     print("Is not a real file")
 
     def update_folder(self, full_path):
-        self.locater.find(full_path=full_path, previous_folder=self.folder_id)
+        self.locater.find(full_path=full_path, previous_folder=self.folder_id, previous_path=self.previous_path)
+        self.previous_path = full_path
 
     def rename_file(self, temp_name, filename, watch_path, notify):
         if os.path.isdir(watch_path + "/" + filename):
             notify.add_watch(bytes(watch_path + "/" + filename, encoding="utf-8"))
 
-        self.folder_id = self.locater.find(full_path=watch_path, previous_folder=self.folder_id)
+        self.folder_id = self.locater.find(full_path=watch_path, previous_folder=self.folder_id,
+                                           previous_path=self.previous_path)
+        self.previous_path = watch_path
+
         page_token = None
         response = self.drive.service.files().list(q="'%s' in parents" % self.folder_id
                                                      and "name='%s'" % temp_name,
@@ -108,8 +114,15 @@ class Update:
                 Update.update(self, full_path=dir_path, file_names=file_names)
 
     def move(self, temp_path, watch_path, filename):
-        self.folder_id = self.locater.find(full_path=temp_path, previous_folder=self.folder_id)
-        new_parent = self.locater.find(watch_path, self.folder_id)
+        # Does it make sense for previous path to be updated here?
+        self.folder_id = self.locater.find(full_path=temp_path, previous_folder=self.folder_id,
+                                           previous_path=self.previous_path)
+        self.previous_path = temp_path
+
+        new_parent = self.locater.find(full_path=watch_path, previous_folder=self.folder_id,
+                                       previous_path=self.previous_path)
+        self.previous_path = watch_path
+
         print(new_parent)
         page_token = None
         response = self.drive.service.files().list(q="'%s' in parents" % self.folder_id
