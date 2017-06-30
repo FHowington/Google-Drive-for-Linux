@@ -113,8 +113,7 @@ class Update:
                 if notify is not None:
                     notify.add_watch(bytes(dir_path + "/" + directory, encoding="utf-8"))
 
-            else:
-                Update.update(self, full_path=dir_path, file_names=file_names)
+            Update.update(self, full_path=dir_path, file_names=file_names)
 
     def move(self, temp_path, watch_path, filename):
         # Does it make sense for previous path to be updated here?
