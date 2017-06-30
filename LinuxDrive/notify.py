@@ -26,7 +26,7 @@ class NotifyMonitor:
         ch.setFormatter(formatter)
         _LOGGER.addHandler(ch)
 
-    def monitor(self):
+    def monitor(self, force_update):
         temp_name = None
         temp_cookie = None
         temp_path = None
@@ -34,6 +34,11 @@ class NotifyMonitor:
         i = inotify.adapters.Inotify()
         for (dirpath, dirnames, filenames) in walk(self.base_path):
             i.add_watch(bytes(dirpath, encoding="utf-8"))
+
+        if force_update:
+            print("Recursively synchronizing entire folder structure")
+            self.update.multi_add(self.base_path, None)
+            print("Sync complete")
 
         try:
             for event in i.event_gen():
@@ -47,21 +52,21 @@ class NotifyMonitor:
 
                         if os.path.getsize(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")) > 0:
                             if not os.path.isdir(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")):
-                                print("Something written to")
-                                print("File name " + filename.decode("utf-8"))
+                                #print("Something written to")
+                                #print("File name " + filename.decode("utf-8"))
                                 self.update.update(watch_path.decode("utf-8"), [filename.decode("utf-8")])
                         else:
                             print("File is 0 bytes, will not attempt upload")
 
                     elif "IN_CREATE" in type_names:
-                        print("Something created")
+                        #print("Something created")
 
                         """
                         This indicates that whatever was just created was a folder. This must be handled differently
                         than a newly created file would be
                         """
                         if os.path.isdir(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")):
-                            print("New folder Created")
+                            #print("New folder Created")
                             self.update.update_folder(watch_path.decode("utf-8") + "/" + filename.decode("utf-8"))
                             i.add_watch(
                                 bytes((watch_path.decode("utf-8") + "/" + filename.decode("utf-8")),
@@ -77,7 +82,7 @@ class NotifyMonitor:
                                                   filename.decode("utf-8"), i)
 
                         else:
-                            print("File Created")
+                            #print("File Created")
                             self.update.update(watch_path.decode("utf-8"), [filename.decode("utf-8")])
 
                     elif "IN_MOVED_FROM" in type_names:
@@ -95,7 +100,7 @@ class NotifyMonitor:
                                         (watch_path.decode("utf-8") + "/" + filename.decode("utf-8")),
                                         encoding="utf-8"))
 
-                                print("This was a rename")
+                                #print("This was a rename")
                                 self.update.rename_file(temp_name.decode("utf-8"),
                                                         filename.decode("utf-8"),
                                                         watch_path.decode("utf-8"), i)

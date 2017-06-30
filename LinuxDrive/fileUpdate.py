@@ -19,9 +19,10 @@ class Update:
         self.previous_path = None
 
     def update(self, full_path, file_names):
-        print("Trying to update")
+        #print("Trying to update")
         self.folder_id = self.locater.find(full_path=full_path, previous_folder=self.folder_id,
                                            previous_path=self.previous_path)
+
         self.previous_path = full_path
 
         file_located = False
@@ -29,7 +30,7 @@ class Update:
 
         print(file_names)
         for filename in file_names:
-            print("Searching for " + filename)
+            #print("Searching for " + filename)
             response = self.drive.service.files().list(q="mimeType!='application/vnd.google-apps.folder'"
                                                          and "'%s' in parents" % self.folder_id
                                                          and "name='%s'" % filename,
@@ -39,7 +40,7 @@ class Update:
 
             for file in response.get('files', []):
                 if file.get('name') == filename and self.folder_id in file.get('parents'):
-                    print("File located")
+                    #print("File located")
 
                     # Getting time of modification of all files in path
                     modified_date = os.path.getmtime(full_path + '/' + filename)
@@ -50,11 +51,11 @@ class Update:
 
                     if datetime.datetime.utcfromtimestamp(modified_date) > datetime_existing:
                         self.drive.service.files().delete(fileId=(file.get('id'))).execute()
-                        print("More recent version of file found. File removed.")
+                        print("More recent version of " + filename + " found. File removed from Google Drive.")
                         break
 
                     else:
-                        print("Found file in folder already id, it is: ", file.get('id'))
+                        # print("Found file in folder already id, it is: ", file.get('id'))
                         file_located = True
                         break
 
@@ -72,12 +73,12 @@ class Update:
                                                       media_body=media,
                                                       fields='id').execute()
 
-                    print("Did not find file, creating it")
+                    print("Creating file " + full_path + "/" + filename)
                 else:
-                    print("Is not a real file")
+                    pass
 
     def update_folder(self, full_path):
-        self.locater.find(full_path=full_path, previous_folder=self.folder_id, previous_path=self.previous_path)
+        self.folder_id = self.locater.find(full_path=full_path, previous_folder=self.folder_id, previous_path=self.previous_path)
         self.previous_path = full_path
 
     def rename_file(self, temp_name, filename, watch_path, notify):
@@ -97,18 +98,20 @@ class Update:
 
         for file in response.get('files', []):
             if file.get('name') == temp_name and self.folder_id in file.get('parents'):
-                print("Older folder found")
+                #print("Older folder found")
 
                 file_metadata = {'name': filename}
 
                 self.drive.service.files().update(fileId=file.get('id'), body=file_metadata,
                                                   fields='id').execute()
+                print("Renamed " + watch_path + "/" + temp_name + " to " + watch_path + "/" + filename)
 
     def multi_add(self, watch_path, notify):
         for (dir_path, dir_names, file_names) in walk(watch_path):
             for directory in dir_names:
                 Update.update_folder(self, dir_path + "/" + directory)
-                notify.add_watch(bytes(dir_path + "/" + directory, encoding="utf-8"))
+                if notify is not None:
+                    notify.add_watch(bytes(dir_path + "/" + directory, encoding="utf-8"))
 
             else:
                 Update.update(self, full_path=dir_path, file_names=file_names)
@@ -122,6 +125,7 @@ class Update:
         new_parent = self.locater.find(full_path=watch_path, previous_folder=self.folder_id,
                                        previous_path=self.previous_path)
         self.previous_path = watch_path
+        self.folder_id = new_parent
 
         print(new_parent)
         page_token = None
@@ -139,4 +143,4 @@ class Update:
                                                   removeParents=previous_parents,
                                                   fields='id, parents').execute()
 
-                print("Successfully moved remote file")
+                print("Moved remote file " + temp_path + "/" + filename + " to " + watch_path + "/" + filename)

@@ -8,6 +8,8 @@ parameters_file = "parameters.json"
 
 
 def main():
+    os.chdir(os.path.dirname(__file__))
+
     if __name__ == '__main__':
         if len(sys.argv) > 1:
             if sys.argv[1] == '--s':
@@ -18,14 +20,13 @@ def main():
             parameters = json.load(f_obj)
 
     except FileNotFoundError:
+        print(os.getcwd())
         create_parameters()
         with open(parameters_file) as f_obj:
             parameters = json.load(f_obj)
 
     drive = Drive()
-    abspath = os.path.abspath(__file__)
-    dname = os.path.dirname(abspath)
-    os.chdir(dname)
+
     os.chdir('/')
 
     base_folder = parameters['drive_folder_name']
@@ -59,14 +60,14 @@ def main():
             'name': base_folder,
             'mimeType': 'application/vnd.google-apps.folder'}
 
-        print("Not located, creating base folder")
+        print("Base folder not located, creating base folder " + base_folder + " on Google Drive")
         folder = drive.service.files().create(body=folder_metadata,
                                               fields='id').execute()
         folder_id = folder.get('id')
 
     print("Started Monitor")
     notify = NotifyMonitor(base_folder=base_folder, base_path=base_path, base_id=folder_id, drive=drive)
-    notify.monitor()
+    notify.monitor(parameters['update_on_start'])
 
 
 def create_parameters():
@@ -74,8 +75,16 @@ def create_parameters():
     parameters['drive_folder_name'] = input("What is the name of the remote folder (On the Google Drive)? ")
     parameters['path_to_folder'] = input(
         "What is the absolute path to the local folder to monitor? (ex: /home/forbes/gDrive)? ")
+    update_on_start = input(
+        "Do you want to perform a full scan of the directory, uploading any changes, \n when the program start? Note "
+        "that this is an intensive process (y/n)")
+    if update_on_start == 'y':
+        parameters['update_on_start'] = True
+    else:
+        parameters['update_on_start'] = False
     with open(parameters_file, 'w') as f_obj:
         json.dump(parameters, f_obj)
+
 
 if __name__ == '__main__':
     main()

@@ -49,16 +49,12 @@ class Locater:
                                                            pageToken=page_token).execute()
 
                 for folder in response.get('files', []):
-
-                    print(folder.get('name'))
                     if folder.get('name') == path_delimited[i] and folder_id in folder.get('parents'):
                         folder_id = folder.get('id')
                         folder_located = True
-                        print("Folder located")
                         break
 
                 if not folder_located:
-                    print("Creating folder " + path_delimited[i])
                     folder_metadata = {
                         'parents': [folder_id],
                         'name': path_delimited[i],
@@ -67,6 +63,9 @@ class Locater:
 
                     folder = self.drive.service.files().create(body=folder_metadata,
                                                                fields='name, id,parents').execute()
+
+                    temp = path_delimited[:i]
+                    print("Created folder " + "/".join(path_delimited[:i]))
                     folder_id = folder.get('id')
 
         return folder_id
