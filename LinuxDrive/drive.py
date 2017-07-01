@@ -45,6 +45,7 @@ class Drive(object):
 
         store = Storage(credential_path)
         credentials = store.get()
+
         if not credentials or credentials.invalid:
             flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
             flow.user_agent = APPLICATION_NAME

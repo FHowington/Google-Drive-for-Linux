@@ -1,19 +1,47 @@
 import os
 import json
+import argparse
 import sys
-from drive import Drive
-from notify import NotifyMonitor
 
 parameters_file = "parameters.json"
 
 
 def main():
-    os.chdir(os.path.dirname(__file__))
+    push = False
+    if os.path.dirname(__file__) is not "":
+        os.chdir(os.path.dirname(__file__))
 
-    if __name__ == '__main__':
-        if len(sys.argv) > 1:
-            if sys.argv[1] == '--s':
-                create_parameters()
+    parser = argparse.ArgumentParser()  
+
+    parser.add_argument("-s", "--settings",
+                        action="store_true", dest="settings", default=False,
+                        help="Open command line prompt to specify settings")
+
+    parser.add_argument("-p", "--push",
+                        action="store_true", dest="push", default=False,
+                        help="Force updating of the entire watched directory")
+    args = parser.parse_args()
+
+    # It is necessary to remove the command line arguments used for the purposes of this script before the Drive API
+    # takes over argument handling
+    if args.settings:
+        while '-s' in sys.argv:
+            sys.argv.remove('-s')
+        while '--settings' in sys.argv:
+            sys.argv.remove('--settings')
+        create_parameters()
+
+    if args.push:
+        while '-p' in sys.argv:
+            sys.argv.remove('-p')
+        while '--push' in sys.argv:
+            sys.argv.remove('--push')
+        push = True
+
+    # These are imported later to all for argument parsing. This is necessary because the Drive API has its own
+    # argparsing methods
+    from drive import Drive
+    from notify import NotifyMonitor
 
     try:
         with open(parameters_file) as f_obj:
@@ -31,6 +59,9 @@ def main():
 
     base_folder = parameters['drive_folder_name']
     base_path = parameters['path_to_folder']
+
+    if parameters['update_on_start']:
+        push = True
 
     # If the base file is not located, the base file is created. Regardless,
     # the baseID is assigned to the base folder
@@ -67,7 +98,7 @@ def main():
 
     print("Started Monitor")
     notify = NotifyMonitor(base_folder=base_folder, base_path=base_path, base_id=folder_id, drive=drive)
-    notify.monitor(parameters['update_on_start'])
+    notify.monitor(force_update=push)
 
 
 def create_parameters():

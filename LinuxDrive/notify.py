@@ -36,7 +36,7 @@ class NotifyMonitor:
             i.add_watch(bytes(dirpath, encoding="utf-8"))
 
         if force_update:
-            print("Recursively synchronizing entire folder structure")
+            print("Synchronizing entire folder structure")
             self.update.multi_add(self.base_path, None)
             print("Sync complete")
 
@@ -52,21 +52,17 @@ class NotifyMonitor:
 
                         if os.path.getsize(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")) > 0:
                             if not os.path.isdir(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")):
-                                #print("Something written to")
-                                #print("File name " + filename.decode("utf-8"))
                                 self.update.update(watch_path.decode("utf-8"), [filename.decode("utf-8")])
                         else:
                             print("File is 0 bytes, will not attempt upload")
 
                     elif "IN_CREATE" in type_names:
-                        #print("Something created")
 
                         """
                         This indicates that whatever was just created was a folder. This must be handled differently
                         than a newly created file would be
                         """
                         if os.path.isdir(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")):
-                            #print("New folder Created")
                             self.update.update_folder(watch_path.decode("utf-8") + "/" + filename.decode("utf-8"))
                             i.add_watch(
                                 bytes((watch_path.decode("utf-8") + "/" + filename.decode("utf-8")),
@@ -82,7 +78,6 @@ class NotifyMonitor:
                                                   filename.decode("utf-8"), i)
 
                         else:
-                            #print("File Created")
                             self.update.update(watch_path.decode("utf-8"), [filename.decode("utf-8")])
 
                     elif "IN_MOVED_FROM" in type_names:
@@ -100,7 +95,6 @@ class NotifyMonitor:
                                         (watch_path.decode("utf-8") + "/" + filename.decode("utf-8")),
                                         encoding="utf-8"))
 
-                                #print("This was a rename")
                                 self.update.rename_file(temp_name.decode("utf-8"),
                                                         filename.decode("utf-8"),
                                                         watch_path.decode("utf-8"), i)

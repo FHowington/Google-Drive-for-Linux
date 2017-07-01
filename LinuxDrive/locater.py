@@ -63,8 +63,6 @@ class Locater:
 
                     folder = self.drive.service.files().create(body=folder_metadata,
                                                                fields='name, id,parents').execute()
-
-                    temp = path_delimited[:i]
                     print("Created folder " + "/".join(path_delimited[:i]))
                     folder_id = folder.get('id')
 

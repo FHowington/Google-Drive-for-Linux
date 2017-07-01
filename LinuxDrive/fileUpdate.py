@@ -19,7 +19,6 @@ class Update:
         self.previous_path = None
 
     def update(self, full_path, file_names):
-        #print("Trying to update")
         self.folder_id = self.locater.find(full_path=full_path, previous_folder=self.folder_id,
                                            previous_path=self.previous_path)
 
@@ -28,9 +27,7 @@ class Update:
         file_located = False
         page_token = None
 
-        print(file_names)
         for filename in file_names:
-            #print("Searching for " + filename)
             response = self.drive.service.files().list(q="mimeType!='application/vnd.google-apps.folder'"
                                                          and "'%s' in parents" % self.folder_id
                                                          and "name='%s'" % filename,
@@ -40,7 +37,6 @@ class Update:
 
             for file in response.get('files', []):
                 if file.get('name') == filename and self.folder_id in file.get('parents'):
-                    #print("File located")
 
                     # Getting time of modification of all files in path
                     modified_date = os.path.getmtime(full_path + '/' + filename)
@@ -78,7 +74,8 @@ class Update:
                     pass
 
     def update_folder(self, full_path):
-        self.folder_id = self.locater.find(full_path=full_path, previous_folder=self.folder_id, previous_path=self.previous_path)
+        self.folder_id = self.locater.find(full_path=full_path, previous_folder=self.folder_id,
+                                           previous_path=self.previous_path)
         self.previous_path = full_path
 
     def rename_file(self, temp_name, filename, watch_path, notify):
@@ -98,8 +95,6 @@ class Update:
 
         for file in response.get('files', []):
             if file.get('name') == temp_name and self.folder_id in file.get('parents'):
-                #print("Older folder found")
-
                 file_metadata = {'name': filename}
 
                 self.drive.service.files().update(fileId=file.get('id'), body=file_metadata,
