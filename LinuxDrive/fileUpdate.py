@@ -63,15 +63,18 @@ class Update:
                     }
 
                     mime_type = magic.from_file(full_path + "/" + filename, mime=True)
-                    media = http.MediaFileUpload(full_path + "/" + filename, mimetype=mime_type)
+                    if os.path.getsize(full_path + "/" + filename) > 0:
+                        media = http.MediaFileUpload(full_path + "/" + filename, resumable=True, mimetype=mime_type)
+                    else:
+                        media = http.MediaFileUpload(full_path + "/" + filename, resumable=False, mimetype=mime_type)
+                        print("Zero bytes, non-resumable")
 
                     self.drive.service.files().create(body=file_metadata,
                                                       media_body=media,
                                                       fields='id').execute()
 
                     print("Creating file " + full_path + "/" + filename)
-                else:
-                    pass
+
 
     def update_folder(self, full_path):
         self.folder_id = self.locater.find(full_path=full_path, previous_folder=self.folder_id,
@@ -101,13 +104,12 @@ class Update:
                                                   fields='id').execute()
                 print("Renamed " + watch_path + "/" + temp_name + " to " + watch_path + "/" + filename)
 
-    def multi_add(self, watch_path, notify):
+    def multi_add(self, watch_path, notify=None):
         for (dir_path, dir_names, file_names) in walk(watch_path):
             for directory in dir_names:
                 Update.update_folder(self, dir_path + "/" + directory)
                 if notify is not None:
                     notify.add_watch(bytes(dir_path + "/" + directory, encoding="utf-8"))
-
             Update.update(self, full_path=dir_path, file_names=file_names)
 
     def move(self, temp_path, watch_path, filename):

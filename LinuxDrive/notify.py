@@ -37,7 +37,7 @@ class NotifyMonitor:
 
         if force_update:
             print("Synchronizing entire folder structure")
-            self.update.multi_add(self.base_path, None)
+            self.update.multi_add(watch_path=self.base_path)
             print("Sync complete")
 
         try:
@@ -49,13 +49,9 @@ class NotifyMonitor:
                         """ This indicates that the file was saved. Initial creation of a file may generate
                         this as well as an IN_CREATE, but the uploader should be able to prevent multiple copies 
                         """
-
-                        if os.path.getsize(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")) > 0:
-                            if not os.path.isdir(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")):
-                                self.update.update(watch_path.decode("utf-8"), [filename.decode("utf-8")])
-                        else:
-                            print("File is 0 bytes, will not attempt upload")
-
+                        if not os.path.isdir(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")):
+                            self.update.update(watch_path.decode("utf-8"), [filename.decode("utf-8")])
+                        
                     elif "IN_CREATE" in type_names:
 
                         """
@@ -63,7 +59,8 @@ class NotifyMonitor:
                         than a newly created file would be
                         """
                         if os.path.isdir(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")):
-                            self.update.update_folder(watch_path.decode("utf-8") + "/" + filename.decode("utf-8"))
+                            self.update.update_folder(
+                                full_path=watch_path.decode("utf-8") + "/" + filename.decode("utf-8"))
                             i.add_watch(
                                 bytes((watch_path.decode("utf-8") + "/" + filename.decode("utf-8")),
                                       encoding="utf-8"))
@@ -74,8 +71,8 @@ class NotifyMonitor:
                             """
                             print("Recursively adding folder")
 
-                            self.update.multi_add(watch_path.decode("utf-8") + "/" +
-                                                  filename.decode("utf-8"), i)
+                            self.update.multi_add(watch_path=watch_path.decode("utf-8") + "/" +
+                                                  filename.decode("utf-8"), notify=i)
 
                         else:
                             self.update.update(watch_path.decode("utf-8"), [filename.decode("utf-8")])

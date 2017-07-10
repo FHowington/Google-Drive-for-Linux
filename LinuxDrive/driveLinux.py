@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import json
 import argparse
@@ -11,7 +13,7 @@ def main():
     if os.path.dirname(__file__) is not "":
         os.chdir(os.path.dirname(__file__))
 
-    parser = argparse.ArgumentParser()  
+    parser = argparse.ArgumentParser()
 
     parser.add_argument("-s", "--settings",
                         action="store_true", dest="settings", default=False,
@@ -108,7 +110,7 @@ def create_parameters():
         "What is the absolute path to the local folder to monitor? (ex: /home/forbes/gDrive)? ")
     update_on_start = input(
         "Do you want to perform a full scan of the directory, uploading any changes, \n when the program start? Note "
-        "that this is an intensive process (y/n)")
+        "that this is an intensive process (y/n) ")
     if update_on_start == 'y':
         parameters['update_on_start'] = True
     else:
