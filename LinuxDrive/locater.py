@@ -67,6 +67,9 @@ class Locater:
                     if folder.get('name') == path_delimited[i] and folder_id in folder.get('parents'):
                         folder_id = folder.get('id')
                         folder_located = True
+                        if self.base_path in full_path:
+                            self.prev_paths.append("/".join(path_delimited[:i+1]))
+                            self.prev_folders.append(folder_id)
                         break
 
                 if not folder_located:
@@ -80,8 +83,9 @@ class Locater:
                                                                fields='name, id,parents').execute()
                     print("Created folder " + "/".join(path_delimited[:i]))
                     folder_id = folder.get('id')
-        if self.base_path in full_path:
-            self.prev_paths.append(full_path)
-            self.prev_folders.append(folder_id)
+
+                if self.base_path in full_path:
+                    self.prev_paths.append("/".join(path_delimited[:i+1]))
+                    self.prev_folders.append(folder_id)
 
         return folder_id
