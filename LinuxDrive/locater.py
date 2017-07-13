@@ -3,23 +3,38 @@ import re
 
 class Locater:
     def __init__(self, base_id, drive, base_path):
+        self.base_path = base_path
         self.drive = drive
         self.base_id = base_id
         self.base_name = re.split('/', base_path)[-1]
+        self.prev_paths = []
+        self.prev_folders = []
 
-    def find(self, full_path, previous_folder, previous_path):
+    def find(self, full_path):
         path_location = 0
-
         folder_located = False
 
         # Because we have a reference to the previous folder located and its ID, we try to start the search
         # from where that search left off
-        if previous_path is not None:
+        if self.prev_paths:
+            previous_path = self.prev_paths.pop()
+            previous_folder = self.prev_folders.pop()
             if previous_path in full_path:
                 full_path = full_path[len(previous_path):]
                 folder_id = previous_folder
                 if full_path == "":
                     folder_located = True
+            elif full_path in previous_path:
+                while previous_path not in full_path and self.prev_paths:
+                    previous_path = self.prev_paths.pop()
+                    previous_folder = self.prev_folders.pop()
+                if previous_path in full_path:
+                    full_path = full_path[len(previous_path):]
+                    folder_id = previous_folder
+                    if full_path == "":
+                        folder_located = True
+                else:
+                    folder_id = self.base_id
             else:
                 folder_id = self.base_id
         else:
@@ -65,5 +80,8 @@ class Locater:
                                                                fields='name, id,parents').execute()
                     print("Created folder " + "/".join(path_delimited[:i]))
                     folder_id = folder.get('id')
+        if self.base_path in full_path:
+            self.prev_paths.append(full_path)
+            self.prev_folders.append(folder_id)
 
         return folder_id

@@ -1,6 +1,7 @@
 import logging
 import os
 import inotify.adapters
+import time
 
 from fileUpdate import Update
 from os import walk
@@ -37,7 +38,9 @@ class NotifyMonitor:
 
         if force_update:
             print("Synchronizing entire folder structure")
+            start_time = time.time()
             self.update.multi_add(watch_path=self.base_path)
+            print(time.time()-start_time)
             print("Sync complete")
 
         try:
@@ -51,7 +54,7 @@ class NotifyMonitor:
                         """
                         if not os.path.isdir(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")):
                             self.update.update(watch_path.decode("utf-8"), [filename.decode("utf-8")])
-                        
+
                     elif "IN_CREATE" in type_names:
 
                         """

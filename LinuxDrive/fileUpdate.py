@@ -16,13 +16,9 @@ class Update:
         self.base_id = base_id
         self.locater = Locater(base_id=base_id, drive=drive, base_path=base_path)
         self.folder_id = None
-        self.previous_path = None
 
     def update(self, full_path, file_names):
-        self.folder_id = self.locater.find(full_path=full_path, previous_folder=self.folder_id,
-                                           previous_path=self.previous_path)
-
-        self.previous_path = full_path
+        self.folder_id = self.locater.find(full_path=full_path)
 
         file_located = False
         page_token = None
@@ -75,19 +71,14 @@ class Update:
 
                     print("Creating file " + full_path + "/" + filename)
 
-
     def update_folder(self, full_path):
-        self.folder_id = self.locater.find(full_path=full_path, previous_folder=self.folder_id,
-                                           previous_path=self.previous_path)
-        self.previous_path = full_path
+        self.folder_id = self.locater.find(full_path=full_path)
 
     def rename_file(self, temp_name, filename, watch_path, notify):
         if os.path.isdir(watch_path + "/" + filename):
             notify.add_watch(bytes(watch_path + "/" + filename, encoding="utf-8"))
 
-        self.folder_id = self.locater.find(full_path=watch_path, previous_folder=self.folder_id,
-                                           previous_path=self.previous_path)
-        self.previous_path = watch_path
+        self.folder_id = self.locater.find(full_path=watch_path)
 
         page_token = None
         response = self.drive.service.files().list(q="'%s' in parents" % self.folder_id
@@ -114,13 +105,9 @@ class Update:
 
     def move(self, temp_path, watch_path, filename):
         # Does it make sense for previous path to be updated here?
-        self.folder_id = self.locater.find(full_path=temp_path, previous_folder=self.folder_id,
-                                           previous_path=self.previous_path)
-        self.previous_path = temp_path
+        self.folder_id = self.locater.find(full_path=temp_path)
 
-        new_parent = self.locater.find(full_path=watch_path, previous_folder=self.folder_id,
-                                       previous_path=self.previous_path)
-        self.previous_path = watch_path
+        new_parent = self.locater.find(full_path=watch_path)
         self.folder_id = new_parent
 
         print(new_parent)
