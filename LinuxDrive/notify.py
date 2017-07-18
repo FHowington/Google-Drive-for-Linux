@@ -21,11 +21,8 @@ class NotifyMonitor:
         self.base_id = base_id
         self.drive = drive
         self.update = Update(base_id, drive, base_path)
-        _LOGGER.setLevel(logging.DEBUG)
-        ch = logging.StreamHandler()
-        formatter = logging.Formatter(_DEFAULT_LOG_FORMAT)
-        ch.setFormatter(formatter)
-        _LOGGER.addHandler(ch)
+        self.logger = logging.getLogger('Drive_Linux')
+
 
     def monitor(self, force_update):
         temp_name = None
@@ -37,11 +34,9 @@ class NotifyMonitor:
             i.add_watch(bytes(dirpath, encoding="utf-8"))
 
         if force_update:
-            print("Synchronizing entire folder structure")
-            start_time = time.time()
+            self.logger.info("Synchronizing entire folder structure")
             self.update.multi_add(watch_path=self.base_path)
-            print(time.time()-start_time)
-            print("Sync complete")
+            self.logger.info("Sync complete")
 
         try:
             for event in i.event_gen():
@@ -49,7 +44,8 @@ class NotifyMonitor:
                     (header, type_names, watch_path, filename) = event
 
                     if "IN_CLOSE_WRITE" in type_names:
-                        """ This indicates that the file was saved. Initial creation of a file may generate
+                        """ 
+                        This indicates that the file was saved. Initial creation of a file may generate
                         this as well as an IN_CREATE, but the uploader should be able to prevent multiple copies 
                         """
                         if not os.path.isdir(watch_path.decode("utf-8") + "/" + filename.decode("utf-8")):
@@ -72,10 +68,11 @@ class NotifyMonitor:
                             Because pasting a folder does not raise iNotify events for the files within the folder
                             we need to manually query the folder for it's contents
                             """
-                            print("Recursively adding folder")
+                            self.logger.info("Adding all contents of folder " + watch_path.decode("utf-8") + "/" +
+                                             filename.decode("utf-8"))
 
-                            self.update.multi_add(watch_path=watch_path.decode("utf-8") + "/" +
-                                                  filename.decode("utf-8"), notify=i)
+                            self.update.multi_add(
+                                watch_path=watch_path.decode("utf-8") + "/" + filename.decode("utf-8"), notify=i)
 
                         else:
                             self.update.update(watch_path.decode("utf-8"), [filename.decode("utf-8")])
@@ -99,10 +96,10 @@ class NotifyMonitor:
                                                         filename.decode("utf-8"),
                                                         watch_path.decode("utf-8"), i)
                             else:
-                                print(filename.decode("utf-8") + " has been moved from " + temp_path.decode(
+                                self.logger.info(filename.decode("utf-8") + " has been moved from " + temp_path.decode(
                                     "utf-8") + " to " + watch_path.decode("utf-8"))
                                 self.update.move(temp_path.decode("utf-8"), watch_path.decode("utf-8"),
                                                  filename.decode("utf-8"))
 
         finally:
-            print("Shutting down")
+            self.logger.info("Shutting down.")

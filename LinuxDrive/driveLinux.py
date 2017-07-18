@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import logging
 import os
 import json
 import argparse
@@ -9,6 +9,17 @@ parameters_file = "parameters.json"
 
 
 def main():
+    logger = logging.getLogger('Drive_Linux')
+    logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s %(name)-12s: %(levelname)-8s %(message)s')
+    console = logging.StreamHandler()
+    fh = logging.FileHandler('history.log')
+    logger.addHandler(fh)
+    fh.setFormatter(formatter)
+    console.setLevel(logging.INFO)
+    console.setFormatter(formatter)
+    logger.addHandler(console)
+
     push = False
     if os.path.dirname(__file__) is not "":
         os.chdir(os.path.dirname(__file__))
@@ -98,7 +109,7 @@ def main():
                                               fields='id').execute()
         folder_id = folder.get('id')
 
-    print("Started Monitor")
+    logger.info("Started Monitor")
     notify = NotifyMonitor(base_folder=base_folder, base_path=base_path, base_id=folder_id, drive=drive)
     notify.monitor(force_update=push)
 

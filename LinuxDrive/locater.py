@@ -1,4 +1,5 @@
 import re
+import logging
 
 
 class Locater:
@@ -9,6 +10,7 @@ class Locater:
         self.base_name = re.split('/', base_path)[-1]
         self.prev_paths = []
         self.prev_folders = []
+        self.logger = logging.getLogger('Drive_Linux')
 
     def find(self, full_path):
         path_location = 0
@@ -81,7 +83,8 @@ class Locater:
 
                     folder = self.drive.service.files().create(body=folder_metadata,
                                                                fields='name, id,parents').execute()
-                    print("Created folder " + "/".join(path_delimited[:i]))
+
+                    self.logger.info("Created folder " + "/".join(path_delimited[:i]))
                     folder_id = folder.get('id')
 
                 if self.base_path in full_path:

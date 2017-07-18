@@ -1,4 +1,5 @@
 import os
+import logging
 from os import walk
 import datetime
 from apiclient import http
@@ -16,6 +17,7 @@ class Update:
         self.base_id = base_id
         self.locater = Locater(base_id=base_id, drive=drive, base_path=base_path)
         self.folder_id = None
+        self.logger = logging.getLogger('Drive_Linux')
 
     def update(self, full_path, file_names):
         self.folder_id = self.locater.find(full_path=full_path)
@@ -43,7 +45,8 @@ class Update:
 
                     if datetime.datetime.utcfromtimestamp(modified_date) > datetime_existing:
                         self.drive.service.files().delete(fileId=(file.get('id'))).execute()
-                        print("More recent version of " + filename + " found. File removed from Google Drive.")
+                        self.logger.info(
+                            "More recent version of " + filename + " found. File removed from Google Drive.")
                         break
 
                     else:
@@ -63,13 +66,13 @@ class Update:
                         media = http.MediaFileUpload(full_path + "/" + filename, resumable=True, mimetype=mime_type)
                     else:
                         media = http.MediaFileUpload(full_path + "/" + filename, resumable=False, mimetype=mime_type)
-                        print("Zero bytes, non-resumable")
+                        self.logger.debug(
+                            "File " + full_path + "/" + filename + " is zero bytes. Non-resumable upload used.")
 
                     self.drive.service.files().create(body=file_metadata,
                                                       media_body=media,
                                                       fields='id').execute()
-
-                    print("Creating file " + full_path + "/" + filename)
+                    self.logger.info("Creating file " + full_path + "/" + filename)
 
     def update_folder(self, full_path):
         self.folder_id = self.locater.find(full_path=full_path)
@@ -93,7 +96,7 @@ class Update:
 
                 self.drive.service.files().update(fileId=file.get('id'), body=file_metadata,
                                                   fields='id').execute()
-                print("Renamed " + watch_path + "/" + temp_name + " to " + watch_path + "/" + filename)
+                self.logger.info("Renamed " + watch_path + "/" + temp_name + " to " + watch_path + "/" + filename)
 
     def multi_add(self, watch_path, notify=None):
         for (dir_path, dir_names, file_names) in walk(watch_path):
@@ -106,11 +109,8 @@ class Update:
     def move(self, temp_path, watch_path, filename):
         # Does it make sense for previous path to be updated here?
         self.folder_id = self.locater.find(full_path=temp_path)
-
         new_parent = self.locater.find(full_path=watch_path)
         self.folder_id = new_parent
-
-        print(new_parent)
         page_token = None
         response = self.drive.service.files().list(q="'%s' in parents" % self.folder_id
                                                      and "name='%s'" % filename,
@@ -125,5 +125,4 @@ class Update:
                                                   addParents=new_parent,
                                                   removeParents=previous_parents,
                                                   fields='id, parents').execute()
-
-                print("Moved remote file " + temp_path + "/" + filename + " to " + watch_path + "/" + filename)
+                self.logger.info("Moved remote file " + temp_path + "/" + filename + " to " + watch_path + "/" + filename)
