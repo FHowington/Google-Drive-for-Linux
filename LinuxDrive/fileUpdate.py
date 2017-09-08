@@ -4,55 +4,84 @@ from os import walk
 import datetime
 from apiclient import http
 import magic
+import json
 
 from locater import Locater
 
 files = []
 dirs = []
+save_file_name = "files.json"
 
 
 class Update:
-    def __init__(self, base_id, drive, base_path):
+    def __init__(self, base_id, drive, base_path, save_file=None):
         self.drive = drive
         self.base_id = base_id
         self.locater = Locater(base_id=base_id, drive=drive, base_path=base_path)
         self.folder_id = None
         self.logger = logging.getLogger('Drive_Linux')
+        self.save_file = save_file
 
     def update(self, full_path, file_names):
+        if self.save_file is not None:
+            self.save_file.seek(0)
+            saved_files = json.load(self.save_file)
+
         self.folder_id = self.locater.find(full_path=full_path)
 
         file_located = False
         page_token = None
 
         for filename in file_names:
-            response = self.drive.service.files().list(q="mimeType!='application/vnd.google-apps.folder'"
-                                                         and "'%s' in parents" % self.folder_id
-                                                         and "name='%s'" % filename,
-                                                       spaces='drive',
-                                                       fields='nextPageToken, files(id, name, parents, modifiedTime)',
-                                                       pageToken=page_token).execute()
-
-            for file in response.get('files', []):
-                if file.get('name') == filename and self.folder_id in file.get('parents'):
-
-                    # Getting time of modification of all files in path
-                    modified_date = os.path.getmtime(full_path + '/' + filename)
-
-                    # Converting Google's weird datetime zulu syntax into UTC syntax
-                    datetime_existing = datetime.datetime.strptime(file.get('modifiedTime').replace("T", " ")[:19],
-                                                                   '%Y-%m-%d %H:%M:%S')
-
-                    if datetime.datetime.utcfromtimestamp(modified_date) > datetime_existing:
-                        self.drive.service.files().delete(fileId=(file.get('id'))).execute()
-                        self.logger.info(
-                            "More recent version of " + filename + " found. File removed from Google Drive.")
-                        break
-
+            if self.save_file is not None:
+                if full_path + '/' + filename in saved_files:
+                    if len(saved_files[full_path + '/' + filename]) > 20:
+                        datetime_existing = datetime.datetime.strptime(saved_files[full_path + '/' + filename],
+                                                                       '%Y-%m-%d %H:%M:%S.%f')
                     else:
-                        # print("Found file in folder already id, it is: ", file.get('id'))
+                        datetime_existing = datetime.datetime.strptime(saved_files[full_path + '/' + filename],
+                                                                       '%Y-%m-%d %H:%M:%S')
+
+                    modified_date = os.path.getmtime(full_path + '/' + filename)
+                    if datetime.datetime.utcfromtimestamp(modified_date) <= datetime_existing:
                         file_located = True
-                        break
+
+            if not file_located:
+                response = self.drive.service.files().list(q="mimeType!='application/vnd.google-apps.folder'"
+                                                             and "'%s' in parents" % self.folder_id
+                                                             and "name='%s'" % filename,
+                                                           spaces='drive',
+                                                           fields='nextPageToken, files(id, name, parents,'
+                                                                  ' modifiedTime)',
+                                                           pageToken=page_token).execute()
+
+                for file in response.get('files', []):
+                    if file.get('name') == filename and self.folder_id in file.get('parents'):
+
+                        # Getting time of modification of all files in path
+                        modified_date = os.path.getmtime(full_path + '/' + filename)
+
+                        # Converting Google's weird datetime zulu syntax into UTC syntax
+
+                        datetime_existing = datetime.datetime.strptime(file.get('modifiedTime').replace("T", " ")[:19],
+                                                                       '%Y-%m-%d %H:%M:%S')
+
+                        if datetime.datetime.utcfromtimestamp(modified_date) > datetime_existing:
+                            self.drive.service.files().delete(fileId=(file.get('id'))).execute()
+                            self.logger.info(
+                                "More recent version of " + filename + " found. File removed from Google Drive.")
+                            if self.save_file is not None:
+                                saved_files[full_path + '/' + filename] = datetime.datetime.utcfromtimestamp(
+                                    modified_date).__str__()
+
+                            break
+
+                        else:
+                            file_located = True
+                            if self.save_file is not None:
+                                saved_files[full_path + '/' + filename] = datetime.datetime.utcfromtimestamp(
+                                    modified_date).__str__()
+                            break
 
             if not file_located:
                 if os.path.isfile(full_path + "/" + filename):
@@ -73,6 +102,14 @@ class Update:
                                                       media_body=media,
                                                       fields='id').execute()
                     self.logger.info("Creating file " + full_path + "/" + filename)
+
+                    if self.save_file is not None:
+                        saved_files[full_path + '/' + filename] = datetime.datetime.utcfromtimestamp(
+                            modified_date).__str__()
+
+        if self.save_file is not None:
+            self.save_file.seek(0)
+            json.dump(saved_files, self.save_file)
 
     def update_folder(self, full_path):
         self.folder_id = self.locater.find(full_path=full_path)
@@ -125,4 +162,5 @@ class Update:
                                                   addParents=new_parent,
                                                   removeParents=previous_parents,
                                                   fields='id, parents').execute()
-                self.logger.info("Moved remote file " + temp_path + "/" + filename + " to " + watch_path + "/" + filename)
+                self.logger.info(
+                    "Moved remote file " + temp_path + "/" + filename + " to " + watch_path + "/" + filename)

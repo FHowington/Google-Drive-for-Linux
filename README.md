@@ -1,10 +1,4 @@
-# Google-Drive-for-Linux
-<<<<<<< HEAD
-This is a python 3 based project that utilizes pyDrive and iNotify to maintain synchronization between a local directory
-=======
-This is a python 3 based project that utilizes <del>pyDrive</del> classes representing files and google drive authorization and iNotify to maintain synchronization between a local directory
->>>>>>> development
-and a folder on the user's google drive.
+This is a python 3 based project that utilizes <del>pyDrive</del> classes representing files and google drive authorization and iNotify to maintain synchronization between a local directory and a folder on the user's google drive.
 
 Goals for upcoming updates:
 May eventually remove usage of pyDrive. There are issues with the "resumable" uploading that might be mitigated.

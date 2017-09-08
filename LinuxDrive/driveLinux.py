@@ -6,6 +6,7 @@ import argparse
 import sys
 
 parameters_file = "parameters.json"
+save_file_name = "files.json"
 
 
 def main():
@@ -21,6 +22,7 @@ def main():
     logger.addHandler(console)
 
     push = False
+
     if os.path.dirname(__file__) is not "":
         os.chdir(os.path.dirname(__file__))
 
@@ -61,10 +63,24 @@ def main():
             parameters = json.load(f_obj)
 
     except FileNotFoundError:
-        print(os.getcwd())
         create_parameters()
         with open(parameters_file) as f_obj:
             parameters = json.load(f_obj)
+
+    if parameters['update_on_start']:
+        push = True
+
+    if parameters['update_save']:
+        try:
+            save_file = open(save_file_name, "r+")
+        except FileNotFoundError:
+            with open(save_file_name, "w") as f_obj:
+                files = {}
+                json.dump(files, f_obj)
+            save_file = open(save_file_name, "r+")
+
+    else:
+        save_file = None
 
     drive = Drive()
 
@@ -73,15 +89,13 @@ def main():
     base_folder = parameters['drive_folder_name']
     base_path = parameters['path_to_folder']
 
-    if parameters['update_on_start']:
-        push = True
-
     # If the base file is not located, the base file is created. Regardless,
     # the baseID is assigned to the base folder
 
     page_token = None
     folder_id = None
     base_located = False
+
     while not base_located:
         response = drive.service.files().list(q="mimeType='application/vnd.google-apps.folder'"
                                                 and "name='%s'" % base_folder,
@@ -110,8 +124,10 @@ def main():
         folder_id = folder.get('id')
 
     logger.info("Started Monitor")
-    notify = NotifyMonitor(base_folder=base_folder, base_path=base_path, base_id=folder_id, drive=drive)
-    notify.monitor(force_update=push)
+    notify = NotifyMonitor(base_folder=base_folder, base_path=base_path, base_id=folder_id, drive=drive,
+                           save_file=save_file)
+
+    notify.monitor(force_update=push, save_file=save_file)
 
 
 def create_parameters():
@@ -126,6 +142,19 @@ def create_parameters():
         parameters['update_on_start'] = True
     else:
         parameters['update_on_start'] = False
+        parameters['update_save'] = False
+    if update_on_start:
+        update_save = input(
+            "Do you want to save the a local copy of file times dates? (This greatly speeds up updating on start\n"
+            "but can lead to complications of synchronizing between multiple PCs (y/n) ")
+        if update_save:
+            parameters['update_save'] = True
+            files = {}
+            with open(save_file_name, 'w') as f_obj:
+                json.dump(files, f_obj)
+        else:
+            parameters['update_save'] = False
+
     with open(parameters_file, 'w') as f_obj:
         json.dump(parameters, f_obj)
 
