@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-
-This is a python 3 based project that utilizes pyDrive and iNotify to maintain synchronization between a local directory
-
-=======
->>>>>>> development
 This is a python 3 based project that utilizes <del>pyDrive</del> classes representing files and google drive authorization and iNotify to maintain synchronization between a local directory and a folder on the user's google drive.
 
 Goals for upcoming updates:
